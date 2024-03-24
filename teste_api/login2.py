@@ -1,8 +1,11 @@
 import sqlite3
 import re
 from fastapi import FastAPI, HTTPException
-
+from tokens import generate_token, verify_token
 app = FastAPI()
+
+# rodar o comando uvicorn login2:app --reload dentro do diretório que está o login2.py
+
 
 # For conditions in user id for registration
 def user_id_check_func(u):
@@ -42,9 +45,11 @@ def login(user_id: str, password: str):
 
     user = c.execute("SELECT * FROM login_details WHERE USER_ID = ?", (user_id,)).fetchone()
     if user and user[2] == password:
+        jwt_token = generate_token(user_id, password)
+        payload = verify_token(jwt_token)
         c.close()
         conn.close()
-        return {"message": "Login successful"}
+        return {"message": "Login feito com sucesso", "token":jwt_token, "payload":payload}
     else:
         c.close()
         conn.close()
@@ -57,3 +62,7 @@ def register_user(user_id: str, password: str):
 @app.post("/login")
 def login_user(user_id: str, password: str):
     return login(user_id, password)
+
+@app.post("/teste")
+def teste(token:str):
+    return verify_token(token)
