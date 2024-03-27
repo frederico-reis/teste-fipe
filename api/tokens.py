@@ -19,8 +19,7 @@ def verify_token(token):
         payload = jwt.decode(token, SECRET_KEY, algorithms="HS256")
         return payload
     except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expirado")
+        raise HTTPException(status_code=401, detail="Expired Token")
     except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Token Inválido")
+        raise HTTPException(status_code=401, detail="Invalid Token")
     
-generate_token("oi")
