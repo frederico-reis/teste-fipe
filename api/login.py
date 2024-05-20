@@ -59,6 +59,56 @@ def register_user(user_id: str, password: str):
 def login_user(user_id: str, password: str):
     return login(user_id, password)
 
+@app.get("/ipva/{tipo}/{marca_id}/{modelo_id}/{ano_id}/{price}/{state}")
+def calculate_ipva(tipo: str, marca_id: int, modelo_id: int, ano_id: str, price:float, state:str):
+
+
+    ipva_rates = {
+        "AC": 0.02,
+        "AL": 0.03,
+        "AP": 0.03,
+        "AM": 0.03,
+        "BA": 0.025,
+        "CE": 0.03,
+        "DF": 0.035,
+        "ES": 0.02,
+        "GO": 0.0375,
+        "MA": 0.025,
+        "MT": 0.03,
+        "MS": 0.03,
+        "MG": 0.04,
+        "PA": 0.025,
+        "PB": 0.025,
+        "PR": 0.035,
+        "PE": 0.03,
+        "PI": 0.025,
+        "RJ": 0.04,
+        "RN": 0.03,
+        "RS": 0.03,
+        "RO": 0.03,
+        "RR": 0.03,
+        "SC": 0.02,
+        "SP": 0.04,
+        "SE": 0.025,
+        "TO": 0.02
+    }
+
+    if state.upper() not in ipva_rates.keys():
+        raise HTTPException(status_code=401, detail="Invalid State")
+    
+    ipva = price * ipva_rates[state.upper()]
+
+    return {
+        "tipo": tipo,
+        "marca_id": marca_id,
+        "modelo_id": modelo_id,
+        "ano_id": ano_id,
+        "price": price,
+        "estado":state.upper(),
+        "ipva": ipva
+    }
+
+
 @app.get("/test")
 def api():
     return {}
