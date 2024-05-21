@@ -4,6 +4,29 @@ from fastapi import FastAPI, HTTPException
 from tokens import generate_token, verify_token
 app = FastAPI()
 
+
+# Create tables if they do not exist
+def init_db():
+    conn = sqlite3.connect('login_data.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS login_details (
+                    USER_ID TEXT PRIMARY KEY,
+                    PASSWORD TEXT NOT NULL
+                )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS favorites (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id TEXT NOT NULL,
+                    modelo_id INTEGER NOT NULL,
+                    FOREIGN KEY (user_id) REFERENCES login_details (USER_ID)
+                )''')
+    conn.commit()
+    c.close()
+    conn.close()
+
+# Initialize the database
+init_db()
+
+
 # For conditions in user id for registration
 def user_id_check_func(u):
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
@@ -51,6 +74,25 @@ def login(user_id: str, password: str):
         conn.close()
         raise HTTPException(status_code=401, detail="Incorrect email or password")
 
+# For adding a car model to favorites
+def add_to_favorites(user_id: str, modelo_id: int):
+    conn = sqlite3.connect('login_data.db')
+    c = conn.cursor()
+
+    user = c.execute("SELECT USER_ID FROM login_details WHERE USER_ID = ?", (user_id,)).fetchone()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    existing_favorite = c.execute("SELECT * FROM favorites WHERE user_id = ? AND modelo_id = ?", (user_id, modelo_id)).fetchone()
+    if existing_favorite:
+        raise HTTPException(status_code=400, detail="Model already in favorites")
+
+    c.execute("INSERT INTO favorites (user_id, modelo_id) VALUES (?, ?)", (user_id, modelo_id))
+    conn.commit()
+    c.close()
+    conn.close()
+    return {"message": "Model added to favorites"}
+
 @app.post("/register")
 def register_user(user_id: str, password: str):
     return register(user_id, password)
@@ -58,6 +100,12 @@ def register_user(user_id: str, password: str):
 @app.post("/login")
 def login_user(user_id: str, password: str):
     return login(user_id, password)
+
+@app.post("/favorite")
+def add_favorite(user_id: str, modelo_id: int, token: str):
+    if not verify_token(token):
+        raise HTTPException(status_code=401, detail="Invalid token or user ID")
+    return add_to_favorites(user_id, modelo_id)
 
 @app.get("/ipva/{tipo}/{marca_id}/{modelo_id}/{ano_id}/{price}/{state}")
 def calculate_ipva(tipo: str, marca_id: int, modelo_id: int, ano_id: str, price:float, state:str):
